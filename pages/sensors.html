@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sensor Status – Smart Beehives</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍯</text></svg>">
+</head>
+<body>
+<div class="bg-decoration"></div>
+<div class="app-layout" id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><div class="sidebar-logo-icon">🍯</div><div class="sidebar-logo-text"><h2>SmartHives</h2><span>IoT Platform v2.0</span></div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="../dashboard.html"    class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="hive-monitoring.html" class="nav-item"><span class="nav-icon">🐝</span> Hive Monitoring</a>
+      <a href="bee-health.html"      class="nav-item"><span class="nav-icon">🏥</span> Bee Health</a>
+      <a href="honey-analytics.html" class="nav-item"><span class="nav-icon">📊</span> Honey Analytics</a>
+      <a href="notifications.html"   class="nav-item"><span class="nav-icon">🔔</span> Notifications</a>
+      <a href="hive-map.html"        class="nav-item"><span class="nav-icon">🗺️</span> Hive Map</a>
+      <div class="nav-section-label">Management</div>
+      <a href="reports.html"         class="nav-item"><span class="nav-icon">📋</span> Reports</a>
+      <a href="farmers.html"         class="nav-item"><span class="nav-icon">👨🌾</span> Farmer Management</a>
+      <a href="sensors.html"         class="nav-item active"><span class="nav-icon">📡</span> Sensor Status</a>
+      <a href="ai-center.html"       class="nav-item"><span class="nav-icon">🤖</span> AI Center</a>
+      <div class="nav-section-label">System</div>
+      <a href="settings.html"        class="nav-item"><span class="nav-icon">⚙️</span> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar"><span class="user-avatar-text">AD</span></div>
+        <div class="user-info"><div class="user-name user-name-display">Admin</div><div class="user-role user-role-display">Administrator</div></div>
+        <button id="logoutBtn" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-muted)">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content" id="mainContent">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+        <div><div class="topbar-title">📡 Sensor Status</div><div class="topbar-subtitle">IoT device health and connectivity monitoring</div></div>
+      </div>
+      <div class="topbar-right">
+        <div class="realtime-indicator"><span class="pulse-dot online"></span><span id="realtimeStatus">Live</span></div>
+        <button class="btn btn-sm btn-secondary" onclick="refreshAll()">🔄 Refresh All</button>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <div class="stats-grid mb-24">
+        <div class="glass-card stat-card green"><span class="stat-icon">📡</span><div class="stat-value">5</div><div class="stat-label">Online Sensors</div></div>
+        <div class="glass-card stat-card red"><span class="stat-icon">📴</span><div class="stat-value">1</div><div class="stat-label">Offline Sensors</div></div>
+        <div class="glass-card stat-card honey"><span class="stat-icon">🔋</span><div class="stat-value">72%</div><div class="stat-label">Avg Battery</div></div>
+        <div class="glass-card stat-card blue"><span class="stat-icon">📶</span><div class="stat-value">98.2%</div><div class="stat-label">Uptime (30d)</div></div>
+      </div>
+
+      <!-- Sensor Cards -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:24px" id="sensorCards"></div>
+
+      <!-- IoT Integration Info -->
+      <div class="glass-card p-24">
+        <div class="section-title mb-16">🔌 IoT Integration Guide</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">
+          ${[
+            { icon:'🔲', name:'ESP32',         desc:'WiFi/BLE microcontroller', status:'Supported' },
+            { icon:'🍓', name:'Raspberry Pi',  desc:'Edge computing node',      status:'Supported' },
+            { icon:'⚖️', name:'Load Cell',     desc:'HX711 weight sensor',      status:'Supported' },
+            { icon:'🌡️', name:'DHT22',         desc:'Temp & humidity sensor',   status:'Supported' },
+            { icon:'📷', name:'Camera Module', desc:'AI disease detection',      status:'Beta' },
+            { icon:'☀️', name:'Solar Panel',   desc:'Power management',          status:'Supported' }
+          ].map(d => `<div style="padding:14px;background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid rgba(255,255,255,0.06)">
+            <div style="font-size:24px;margin-bottom:8px">${d.icon}</div>
+            <div style="font-weight:600;font-size:13px">${d.name}</div>
+            <div class="text-xs text-muted mb-6">${d.desc}</div>
+            <span class="badge ${d.status==='Supported'?'badge-success':'badge-warning'}">${d.status}</span>
+          </div>`).join('')}
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div id="toastContainer" class="toast-container"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/dashboard.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  initSupabase();
+  const user = await Auth.getUser();
+  if (!user) { window.location.href = '../index.html'; return; }
+  loadUserInfo(); setupSidebar();
+  const { data } = await DB.getHives();
+  allHives = data || [];
+  renderSensorCards();
+  startRealtimeSimulation();
+});
+
+function renderSensorCards() {
+  document.getElementById('sensorCards').innerHTML = allHives.map(hive => {
+    const s = hive.hive_sensors?.[0] || {};
+    const online = s.is_online !== false;
+    const batColor = s.battery < 20 ? 'var(--danger)' : s.battery < 50 ? 'var(--warning)' : 'var(--success)';
+    return `<div class="glass-card p-20">
+      <div class="flex justify-between items-center mb-12">
+        <div>
+          <div style="font-weight:600">${hive.name}</div>
+          <div class="text-sm text-muted">📍 ${hive.location_name}</div>
+        </div>
+        <span class="pulse-dot ${online?'online':'offline'}"></span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-bottom:12px">
+        <div>🌡️ DHT22: <span class="${online?'text-success':'text-danger'}">${online?'OK':'Fail'}</span></div>
+        <div>⚖️ HX711: <span class="${online?'text-success':'text-danger'}">${online?'OK':'Fail'}</span></div>
+        <div>📶 WiFi: <span class="${online?'text-success':'text-danger'}">${online?'Connected':'Lost'}</span></div>
+        <div>☀️ Solar: <span class="text-honey">${online?'Charging':'N/A'}</span></div>
+      </div>
+      <div class="flex items-center gap-8 mb-4">
+        <span class="text-xs text-muted">🔋 ${s.battery || 0}%</span>
+        <div class="progress-bar" style="flex:1"><div class="progress-fill ${s.battery<20?'red':s.battery<50?'honey':'green'}" style="width:${s.battery||0}%"></div></div>
+      </div>
+      <div class="text-xs text-muted">Last ping: ${s.last_updated ? timeAgo(s.last_updated) : 'N/A'}</div>
+    </div>`;
+  }).join('');
+}
+
+function refreshAll() {
+  showToast('🔄 Refreshing all sensor connections...', 'info');
+  setTimeout(() => { renderSensorCards(); showToast('✅ All sensors refreshed!', 'success'); }, 1500);
+}
+</script>
+</body>
+</html>

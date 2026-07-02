@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hive Monitoring – Smart Beehives</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍯</text></svg>">
+</head>
+<body>
+<div class="bg-decoration"></div>
+<div class="app-layout" id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><div class="sidebar-logo-icon">🍯</div><div class="sidebar-logo-text"><h2>SmartHives</h2><span>IoT Platform v2.0</span></div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="../dashboard.html"    class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="hive-monitoring.html" class="nav-item active"><span class="nav-icon">🐝</span> Hive Monitoring</a>
+      <a href="bee-health.html"      class="nav-item"><span class="nav-icon">🏥</span> Bee Health</a>
+      <a href="honey-analytics.html" class="nav-item"><span class="nav-icon">📊</span> Honey Analytics</a>
+      <a href="notifications.html"   class="nav-item"><span class="nav-icon">🔔</span> Notifications</a>
+      <a href="hive-map.html"        class="nav-item"><span class="nav-icon">🗺️</span> Hive Map</a>
+      <div class="nav-section-label">Management</div>
+      <a href="reports.html"         class="nav-item"><span class="nav-icon">📋</span> Reports</a>
+      <a href="farmers.html"         class="nav-item"><span class="nav-icon">👨🌾</span> Farmer Management</a>
+      <a href="sensors.html"         class="nav-item"><span class="nav-icon">📡</span> Sensor Status</a>
+      <a href="ai-center.html"       class="nav-item"><span class="nav-icon">🤖</span> AI Center</a>
+      <div class="nav-section-label">System</div>
+      <a href="settings.html"        class="nav-item"><span class="nav-icon">⚙️</span> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar"><span class="user-avatar-text">AD</span></div>
+        <div class="user-info"><div class="user-name user-name-display">Admin</div><div class="user-role user-role-display">Administrator</div></div>
+        <button id="logoutBtn" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-muted)">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content" id="mainContent">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+        <div><div class="topbar-title">🐝 Hive Monitoring</div><div class="topbar-subtitle">Real-time sensor data across all hives</div></div>
+      </div>
+      <div class="topbar-right">
+        <div class="realtime-indicator"><span class="pulse-dot online"></span><span id="realtimeStatus">Live</span></div>
+        <button class="topbar-btn" onclick="window.location.href='notifications.html'">🔔<span class="notif-count hidden">0</span></button>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <!-- Sensor Summary -->
+      <div class="stats-grid" style="margin-bottom:24px">
+        <div class="glass-card stat-card honey"><span class="stat-icon">🌡️</span><div class="stat-value" id="avgTemp">--</div><div class="stat-label">Avg Temperature</div></div>
+        <div class="glass-card stat-card blue"><span class="stat-icon">💧</span><div class="stat-value" id="avgHumid">--</div><div class="stat-label">Avg Humidity</div></div>
+        <div class="glass-card stat-card green"><span class="stat-icon">⚖️</span><div class="stat-value" id="totalWeight">--</div><div class="stat-label">Total Weight</div></div>
+        <div class="glass-card stat-card honey"><span class="stat-icon">📡</span><div class="stat-value" id="onlineCount">--</div><div class="stat-label">Online Sensors</div></div>
+      </div>
+
+      <!-- Live Sensor Table -->
+      <div class="glass-card p-24 mb-24">
+        <div class="section-header">
+          <div class="section-title">📡 Live Sensor Readings</div>
+          <span class="badge badge-success"><span class="pulse-dot online"></span> Updating every 5s</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="sensor-table" id="sensorTable">
+            <thead>
+              <tr>
+                <th>Hive</th><th>Location</th><th>Temp (°C)</th><th>Humidity (%)</th>
+                <th>Weight (kg)</th><th>Battery</th><th>Status</th><th>Last Update</th><th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="sensorTableBody">
+              <tr><td colspan="9" class="text-center p-16"><span class="spinner"></span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Multi-hive temp chart -->
+      <div class="content-grid">
+        <div class="glass-card p-24">
+          <div class="section-title mb-16">🌡️ Temperature Comparison (24h)</div>
+          <div class="chart-canvas-wrap"><canvas id="multiTempChart"></canvas></div>
+        </div>
+        <div class="glass-card p-24">
+          <div class="section-title mb-16">⚖️ Weight Comparison</div>
+          <div class="chart-canvas-wrap"><canvas id="weightBarChart"></canvas></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div id="toastContainer" class="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/charts.js"></script>
+<script src="../js/dashboard.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  initSupabase();
+  const user = await Auth.getUser();
+  if (!user) { window.location.href = '../index.html'; return; }
+  loadUserInfo();
+  setupSidebar();
+  await loadMonitoringData();
+  startRealtimeSimulation();
+});
+
+async function loadMonitoringData() {
+  const { data } = await DB.getHives();
+  allHives = data || [];
+  renderSensorTable();
+  renderSummaryStats();
+  renderMonitoringCharts();
+}
+
+function renderSummaryStats() {
+  const online = allHives.filter(h => h.hive_sensors?.[0]?.is_online !== false);
+  const temps  = online.map(h => h.hive_sensors[0].temperature).filter(Boolean);
+  const humids = online.map(h => h.hive_sensors[0].humidity).filter(Boolean);
+  const weights = allHives.map(h => h.hive_sensors?.[0]?.weight || 0);
+
+  document.getElementById('avgTemp').textContent    = temps.length  ? (temps.reduce((a,b)=>a+b,0)/temps.length).toFixed(1)+'°C' : '--';
+  document.getElementById('avgHumid').textContent   = humids.length ? (humids.reduce((a,b)=>a+b,0)/humids.length).toFixed(0)+'%' : '--';
+  document.getElementById('totalWeight').textContent = weights.reduce((a,b)=>a+b,0).toFixed(1)+' kg';
+  document.getElementById('onlineCount').textContent = online.length + '/' + allHives.length;
+}
+
+function renderSensorTable() {
+  const tbody = document.getElementById('sensorTableBody');
+  tbody.innerHTML = allHives.map(hive => {
+    const s = hive.hive_sensors?.[0] || {};
+    const online = s.is_online !== false;
+    const batColor = s.battery < 20 ? 'var(--danger)' : s.battery < 50 ? 'var(--warning)' : 'var(--success)';
+    return `<tr>
+      <td><strong>${hive.name}</strong></td>
+      <td class="text-muted">📍 ${hive.location_name || 'N/A'}</td>
+      <td style="color:${s.temperature>37?'var(--danger)':s.temperature>35?'var(--warning)':'var(--success)'}">${online ? s.temperature+'°C' : '--'}</td>
+      <td>${online ? s.humidity+'%' : '--'}</td>
+      <td>${s.weight ? s.weight+' kg' : '--'}</td>
+      <td><span style="color:${batColor}">${s.battery || 0}%</span></td>
+      <td>${online ? '<span class="badge badge-success">Online</span>' : '<span class="badge badge-danger">Offline</span>'}</td>
+      <td class="text-muted text-sm">${s.last_updated ? timeAgo(s.last_updated) : 'N/A'}</td>
+      <td><a href="../hive-detail.html?id=${hive.id}" class="btn btn-sm btn-secondary">View</a></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderMonitoringCharts() {
+  const hours = getLast24Hours();
+  const colors = ['#f5a623','#22c55e','#3b82f6','#ef4444','#a855f7','#14b8a6'];
+  const datasets = allHives.slice(0,4).map((h,i) => ({
+    data: generateTimeSeries(24, h.hive_sensors?.[0]?.temperature || 34, 2),
+    color: colors[i], label: h.name, fill: false
+  }));
+  drawLineChart('multiTempChart', hours, datasets, { height: 220, min: 28, max: 42 });
+
+  const names   = allHives.map(h => h.name.split(' ')[0]);
+  const weights = allHives.map(h => h.hive_sensors?.[0]?.weight || 0);
+  drawBarChart('weightBarChart', names, weights, { height: 220, colors, decimals: 1 });
+}
+</script>
+</body>
+</html>

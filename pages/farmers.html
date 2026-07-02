@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Farmer Management – Smart Beehives</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍯</text></svg>">
+</head>
+<body>
+<div class="bg-decoration"></div>
+<div class="app-layout" id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><div class="sidebar-logo-icon">🍯</div><div class="sidebar-logo-text"><h2>SmartHives</h2><span>IoT Platform v2.0</span></div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="../dashboard.html"    class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="hive-monitoring.html" class="nav-item"><span class="nav-icon">🐝</span> Hive Monitoring</a>
+      <a href="bee-health.html"      class="nav-item"><span class="nav-icon">🏥</span> Bee Health</a>
+      <a href="honey-analytics.html" class="nav-item"><span class="nav-icon">📊</span> Honey Analytics</a>
+      <a href="notifications.html"   class="nav-item"><span class="nav-icon">🔔</span> Notifications</a>
+      <a href="hive-map.html"        class="nav-item"><span class="nav-icon">🗺️</span> Hive Map</a>
+      <div class="nav-section-label">Management</div>
+      <a href="reports.html"         class="nav-item"><span class="nav-icon">📋</span> Reports</a>
+      <a href="farmers.html"         class="nav-item active"><span class="nav-icon">👨🌾</span> Farmer Management</a>
+      <a href="sensors.html"         class="nav-item"><span class="nav-icon">📡</span> Sensor Status</a>
+      <a href="ai-center.html"       class="nav-item"><span class="nav-icon">🤖</span> AI Center</a>
+      <div class="nav-section-label">System</div>
+      <a href="settings.html"        class="nav-item"><span class="nav-icon">⚙️</span> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar"><span class="user-avatar-text">AD</span></div>
+        <div class="user-info"><div class="user-name user-name-display">Admin</div><div class="user-role user-role-display">Administrator</div></div>
+        <button id="logoutBtn" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-muted)">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content" id="mainContent">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+        <div><div class="topbar-title">👨🌾 Farmer Management</div><div class="topbar-subtitle">Manage farm staff and role assignments</div></div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-primary btn-sm" onclick="openModal('addFarmerModal')">+ Add Farmer</button>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:24px" id="farmerCards"></div>
+
+      <div class="glass-card p-24">
+        <div class="section-title mb-16">👥 All Users</div>
+        <table class="sensor-table">
+          <thead><tr><th>Name</th><th>Role</th><th>Email</th><th>Assigned Hives</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="farmerTable"></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Add Farmer Modal -->
+<div class="modal-overlay" id="addFarmerModal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Add New Farmer</div><button class="modal-close">✕</button></div>
+    <div class="form-group"><label class="form-label">Full Name</label><input type="text" class="form-input" placeholder="Full name"></div>
+    <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" placeholder="email@example.com"></div>
+    <div class="form-group"><label class="form-label">Role</label>
+      <select class="form-select"><option>Farmer</option><option>Technician</option><option>Admin</option></select>
+    </div>
+    <div class="form-group"><label class="form-label">Phone</label><input type="tel" class="form-input" placeholder="+254 700 000 000"></div>
+    <div class="flex gap-12 mt-16">
+      <button class="btn btn-secondary w-full" data-close-modal>Cancel</button>
+      <button class="btn btn-primary w-full" onclick="addFarmer()">Add Farmer</button>
+    </div>
+  </div>
+</div>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div id="toastContainer" class="toast-container"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/dashboard.js"></script>
+<script>
+const farmers = [
+  { name:'John Mwangi',   role:'Farmer',     email:'john@farm.com',  hives:['Alpha Hive'],           status:'active', joined:'2024-01-15' },
+  { name:'Mary Wanjiku',  role:'Farmer',     email:'mary@farm.com',  hives:['Beta Hive'],            status:'active', joined:'2024-02-10' },
+  { name:'Peter Kamau',   role:'Technician', email:'peter@farm.com', hives:['Gamma Hive'],           status:'active', joined:'2024-03-05' },
+  { name:'Grace Njeri',   role:'Farmer',     email:'grace@farm.com', hives:['Delta Hive'],           status:'inactive',joined:'2024-01-28' },
+  { name:'James Ochieng', role:'Farmer',     email:'james@farm.com', hives:['Epsilon Hive'],         status:'active', joined:'2024-04-12' },
+  { name:'Sarah Akinyi',  role:'Farmer',     email:'sarah@farm.com', hives:['Zeta Hive'],            status:'active', joined:'2024-05-01' }
+];
+
+document.addEventListener('DOMContentLoaded', async () => {
+  initSupabase();
+  const user = await Auth.getUser();
+  if (!user) { window.location.href = '../index.html'; return; }
+  loadUserInfo(); setupSidebar(); setupModals();
+  renderFarmerCards();
+  renderFarmerTable();
+});
+
+function renderFarmerCards() {
+  document.getElementById('farmerCards').innerHTML = farmers.map(f => {
+    const initials = f.name.split(' ').map(n=>n[0]).join('');
+    return `<div class="glass-card p-20">
+      <div class="flex items-center gap-12 mb-12">
+        <div style="width:48px;height:48px;background:linear-gradient(135deg,var(--honey),var(--amber));border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#1a0a00;font-size:16px">${initials}</div>
+        <div>
+          <div style="font-weight:600">${f.name}</div>
+          <div class="text-sm text-muted">${f.role}</div>
+        </div>
+        <span class="badge ${f.status==='active'?'badge-success':'badge-muted'}" style="margin-left:auto">${f.status}</span>
+      </div>
+      <div class="text-sm text-secondary mb-8">📧 ${f.email}</div>
+      <div class="text-sm text-secondary mb-12">🐝 ${f.hives.join(', ')}</div>
+      <div class="flex gap-8">
+        <button class="btn btn-sm btn-secondary w-full">✏️ Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="showToast('Remove farmer?','warning')">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderFarmerTable() {
+  document.getElementById('farmerTable').innerHTML = farmers.map(f => `
+    <tr>
+      <td><strong>${f.name}</strong></td>
+      <td><span class="badge ${f.role==='Admin'?'badge-danger':f.role==='Technician'?'badge-info':'badge-success'}">${f.role}</span></td>
+      <td class="text-muted">${f.email}</td>
+      <td>${f.hives.join(', ')}</td>
+      <td><span class="badge ${f.status==='active'?'badge-success':'badge-muted'}">${f.status}</span></td>
+      <td><button class="btn btn-sm btn-secondary">Edit</button></td>
+    </tr>`).join('');
+}
+
+function addFarmer() { showToast('✅ Farmer added successfully!', 'success'); closeModal('addFarmerModal'); }
+</script>
+</body>
+</html>

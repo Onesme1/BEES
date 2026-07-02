@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Honey Analytics – Smart Beehives</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍯</text></svg>">
+</head>
+<body>
+<div class="bg-decoration"></div>
+<div class="app-layout" id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><div class="sidebar-logo-icon">🍯</div><div class="sidebar-logo-text"><h2>SmartHives</h2><span>IoT Platform v2.0</span></div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="../dashboard.html"    class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="hive-monitoring.html" class="nav-item"><span class="nav-icon">🐝</span> Hive Monitoring</a>
+      <a href="bee-health.html"      class="nav-item"><span class="nav-icon">🏥</span> Bee Health</a>
+      <a href="honey-analytics.html" class="nav-item active"><span class="nav-icon">📊</span> Honey Analytics</a>
+      <a href="notifications.html"   class="nav-item"><span class="nav-icon">🔔</span> Notifications</a>
+      <a href="hive-map.html"        class="nav-item"><span class="nav-icon">🗺️</span> Hive Map</a>
+      <div class="nav-section-label">Management</div>
+      <a href="reports.html"         class="nav-item"><span class="nav-icon">📋</span> Reports</a>
+      <a href="farmers.html"         class="nav-item"><span class="nav-icon">👨🌾</span> Farmer Management</a>
+      <a href="sensors.html"         class="nav-item"><span class="nav-icon">📡</span> Sensor Status</a>
+      <a href="ai-center.html"       class="nav-item"><span class="nav-icon">🤖</span> AI Center</a>
+      <div class="nav-section-label">System</div>
+      <a href="settings.html"        class="nav-item"><span class="nav-icon">⚙️</span> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar"><span class="user-avatar-text">AD</span></div>
+        <div class="user-info"><div class="user-name user-name-display">Admin</div><div class="user-role user-role-display">Administrator</div></div>
+        <button id="logoutBtn" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-muted)">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content" id="mainContent">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+        <div><div class="topbar-title">📊 Honey Analytics</div><div class="topbar-subtitle">Production trends, harvest predictions & yield analysis</div></div>
+      </div>
+      <div class="topbar-right">
+        <div class="realtime-indicator"><span class="pulse-dot online"></span><span>Live</span></div>
+        <select class="form-select" style="width:130px;padding:8px 12px;font-size:13px" id="periodSelect" onchange="changePeriod(this.value)">
+          <option value="7d">Last 7 Days</option>
+          <option value="30d" selected>Last 30 Days</option>
+          <option value="6m">Last 6 Months</option>
+          <option value="1y">Last Year</option>
+        </select>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <!-- KPI Cards -->
+      <div class="stats-grid mb-24">
+        <div class="glass-card stat-card honey"><span class="stat-icon">🍯</span><div class="stat-value">167.4</div><div class="stat-label">Total Honey (kg)</div><div class="stat-change up">↑ +12% vs last month</div></div>
+        <div class="glass-card stat-card green"><span class="stat-icon">📈</span><div class="stat-value">28.4</div><div class="stat-label">Best Hive (kg)</div><div class="stat-change up">↑ Epsilon Hive</div></div>
+        <div class="glass-card stat-card blue"><span class="stat-icon">🎯</span><div class="stat-value">42 kg</div><div class="stat-label">Harvest Prediction</div><div class="stat-change up">↑ Next 30 days</div></div>
+        <div class="glass-card stat-card honey"><span class="stat-icon">💰</span><div class="stat-value">$2,847</div><div class="stat-label">Est. Revenue</div><div class="stat-change up">↑ At $17/kg</div></div>
+      </div>
+
+      <!-- Main Production Chart -->
+      <div class="glass-card p-24 mb-20">
+        <div class="section-header">
+          <div><div class="section-title">📈 Honey Production Trend</div><div class="section-subtitle">Combined weight across all hives</div></div>
+          <div class="flex gap-8">
+            <button class="btn btn-sm btn-secondary" onclick="toggleChartType('line')">Line</button>
+            <button class="btn btn-sm btn-primary" onclick="toggleChartType('bar')">Bar</button>
+          </div>
+        </div>
+        <div class="chart-canvas-wrap" style="height:280px"><canvas id="productionChart"></canvas></div>
+      </div>
+
+      <!-- Per-Hive + Harvest Prediction -->
+      <div class="content-grid mb-20">
+        <div class="glass-card p-24">
+          <div class="section-title mb-16">🐝 Per-Hive Production</div>
+          <div class="chart-canvas-wrap" style="height:240px"><canvas id="perHiveChart"></canvas></div>
+        </div>
+        <div class="glass-card p-24">
+          <div class="section-title mb-16">🎯 Harvest Readiness</div>
+          <div id="harvestList" style="display:flex;flex-direction:column;gap:12px"></div>
+        </div>
+      </div>
+
+      <!-- Honey Records Table -->
+      <div class="glass-card p-24">
+        <div class="section-header">
+          <div class="section-title">📋 Harvest Records</div>
+          <button class="btn btn-sm btn-primary" onclick="recordHarvest()">+ Record Harvest</button>
+        </div>
+        <table class="sensor-table">
+          <thead><tr><th>Date</th><th>Hive</th><th>Weight (kg)</th><th>Quality</th><th>Farmer</th><th>Notes</th></tr></thead>
+          <tbody id="harvestTable">
+            <tr><td>2024-06-15</td><td>Alpha Hive</td><td>8.2 kg</td><td><span class="badge badge-success">Grade A</span></td><td>John Mwangi</td><td>Excellent color</td></tr>
+            <tr><td>2024-06-10</td><td>Epsilon Hive</td><td>11.4 kg</td><td><span class="badge badge-success">Grade A</span></td><td>James Ochieng</td><td>High yield season</td></tr>
+            <tr><td>2024-05-28</td><td>Beta Hive</td><td>7.8 kg</td><td><span class="badge badge-warning">Grade B</span></td><td>Mary Wanjiku</td><td>Slightly high moisture</td></tr>
+            <tr><td>2024-05-15</td><td>Zeta Hive</td><td>9.1 kg</td><td><span class="badge badge-success">Grade A</span></td><td>Sarah Akinyi</td><td>Premium quality</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div id="toastContainer" class="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/charts.js"></script>
+<script src="../js/dashboard.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  initSupabase();
+  const user = await Auth.getUser();
+  if (!user) { window.location.href = '../index.html'; return; }
+  loadUserInfo(); setupSidebar();
+  const { data } = await DB.getHives();
+  allHives = data || [];
+  renderAnalyticsCharts();
+  renderHarvestReadiness();
+});
+
+function renderAnalyticsCharts() {
+  const months = getLast6Months();
+  const production = [36.5, 42.1, 51.8, 58.3, 62.7, 167.4];
+  drawLineChart('productionChart', months, [
+    { data: production, color: '#f5a623', label: 'Total kg' }
+  ], { height: 280, decimals: 0 });
+
+  const names   = allHives.map(h => h.name.split(' ')[0]);
+  const weights = allHives.map(h => h.hive_sensors?.[0]?.weight || 0);
+  const colors  = ['#f5a623','#22c55e','#3b82f6','#ef4444','#a855f7','#14b8a6'];
+  drawBarChart('perHiveChart', names, weights, { height: 240, colors, decimals: 1 });
+}
+
+function renderHarvestReadiness() {
+  const container = document.getElementById('harvestList');
+  container.innerHTML = allHives.map(hive => {
+    const w = hive.hive_sensors?.[0]?.weight || 0;
+    const pct = Math.min((w / 35) * 100, 100);
+    const ready = w >= 30;
+    return `<div>
+      <div class="flex justify-between items-center mb-8">
+        <span class="text-sm font-bold">${hive.name}</span>
+        <span class="badge ${ready ? 'badge-success' : 'badge-warning'}">${ready ? '✅ Ready' : '⏳ Growing'}</span>
+      </div>
+      <div class="flex items-center gap-8">
+        <div class="progress-bar" style="flex:1"><div class="progress-fill honey" style="width:${pct}%"></div></div>
+        <span class="text-sm text-honey">${w} kg</span>
+      </div>
+      <div class="text-xs text-muted mt-4">${ready ? 'Harvest recommended now' : `~${(35-w).toFixed(1)} kg to harvest threshold`}</div>
+    </div>`;
+  }).join('');
+}
+
+function changePeriod(period) {
+  renderAnalyticsCharts();
+  showToast(`Showing data for: ${period}`, 'info');
+}
+
+function toggleChartType(type) {
+  renderAnalyticsCharts();
+}
+
+function recordHarvest() {
+  showToast('Harvest recording form coming soon!', 'info');
+}
+</script>
+</body>
+</html>

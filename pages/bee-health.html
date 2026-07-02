@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bee Health – Smart Beehives</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍯</text></svg>">
+  <style>
+    .health-card { padding:20px; }
+    .health-score { font-size:48px; font-weight:700; line-height:1; }
+    .disease-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; }
+    .disease-item { padding:16px; background:rgba(255,255,255,0.04); border-radius:var(--radius-sm); border:1px solid rgba(255,255,255,0.06); }
+    .disease-risk-bar { height:4px; border-radius:2px; margin-top:8px; }
+  </style>
+</head>
+<body>
+<div class="bg-decoration"></div>
+<div class="app-layout" id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><div class="sidebar-logo-icon">🍯</div><div class="sidebar-logo-text"><h2>SmartHives</h2><span>IoT Platform v2.0</span></div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="../dashboard.html"    class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="hive-monitoring.html" class="nav-item"><span class="nav-icon">🐝</span> Hive Monitoring</a>
+      <a href="bee-health.html"      class="nav-item active"><span class="nav-icon">🏥</span> Bee Health</a>
+      <a href="honey-analytics.html" class="nav-item"><span class="nav-icon">📊</span> Honey Analytics</a>
+      <a href="notifications.html"   class="nav-item"><span class="nav-icon">🔔</span> Notifications</a>
+      <a href="hive-map.html"        class="nav-item"><span class="nav-icon">🗺️</span> Hive Map</a>
+      <div class="nav-section-label">Management</div>
+      <a href="reports.html"         class="nav-item"><span class="nav-icon">📋</span> Reports</a>
+      <a href="farmers.html"         class="nav-item"><span class="nav-icon">👨🌾</span> Farmer Management</a>
+      <a href="sensors.html"         class="nav-item"><span class="nav-icon">📡</span> Sensor Status</a>
+      <a href="ai-center.html"       class="nav-item"><span class="nav-icon">🤖</span> AI Center</a>
+      <div class="nav-section-label">System</div>
+      <a href="settings.html"        class="nav-item"><span class="nav-icon">⚙️</span> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar"><span class="user-avatar-text">AD</span></div>
+        <div class="user-info"><div class="user-name user-name-display">Admin</div><div class="user-role user-role-display">Administrator</div></div>
+        <button id="logoutBtn" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-muted)">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content" id="mainContent">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+        <div><div class="topbar-title">🏥 Bee Health Detection</div><div class="topbar-subtitle">AI-powered colony health monitoring & disease detection</div></div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-primary btn-sm" onclick="runAIScan()">🤖 Run AI Scan</button>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <!-- Health Overview -->
+      <div class="stats-grid mb-24">
+        <div class="glass-card stat-card green"><span class="stat-icon">💚</span><div class="stat-value">4</div><div class="stat-label">Healthy Hives</div></div>
+        <div class="glass-card stat-card honey"><span class="stat-icon">⚠️</span><div class="stat-value">1</div><div class="stat-label">Under Watch</div></div>
+        <div class="glass-card stat-card red"><span class="stat-icon">🚨</span><div class="stat-value">0</div><div class="stat-label">Disease Detected</div></div>
+        <div class="glass-card stat-card blue"><span class="stat-icon">🤖</span><div class="stat-value">97%</div><div class="stat-label">AI Accuracy</div></div>
+      </div>
+
+      <!-- Per-Hive Health Cards -->
+      <div class="section-title mb-16">🐝 Colony Health Status</div>
+      <div id="healthCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:24px"></div>
+
+      <!-- Disease Risk Matrix -->
+      <div class="glass-card p-24 mb-20">
+        <div class="section-title mb-16">🦠 Disease Risk Matrix</div>
+        <div class="disease-grid" id="diseaseMatrix"></div>
+      </div>
+
+      <!-- Health Trend Chart -->
+      <div class="glass-card p-24">
+        <div class="section-title mb-16">📈 Colony Health Trend (30 days)</div>
+        <div class="chart-canvas-wrap" style="height:240px"><canvas id="healthTrendChart"></canvas></div>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div id="toastContainer" class="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/charts.js"></script>
+<script src="../js/dashboard.js"></script>
+<script>
+const healthData = [
+  { hive: 'Alpha Hive',   score: 96, status: 'Excellent', varroa: 2,  nosema: 1,  foulbrood: 0, queen: 'Active',   trend: 'stable' },
+  { hive: 'Beta Hive',    score: 88, status: 'Good',      varroa: 8,  nosema: 3,  foulbrood: 0, queen: 'Active',   trend: 'up' },
+  { hive: 'Gamma Hive',   score: 71, status: 'Warning',   varroa: 22, nosema: 5,  foulbrood: 1, queen: 'Weak',     trend: 'down' },
+  { hive: 'Delta Hive',   score: 0,  status: 'Offline',   varroa: 0,  nosema: 0,  foulbrood: 0, queen: 'Unknown',  trend: 'unknown' },
+  { hive: 'Epsilon Hive', score: 94, status: 'Excellent', varroa: 3,  nosema: 1,  foulbrood: 0, queen: 'Active',   trend: 'up' },
+  { hive: 'Zeta Hive',    score: 91, status: 'Good',      varroa: 6,  nosema: 2,  foulbrood: 0, queen: 'Active',   trend: 'stable' }
+];
+
+document.addEventListener('DOMContentLoaded', async () => {
+  initSupabase();
+  const user = await Auth.getUser();
+  if (!user) { window.location.href = '../index.html'; return; }
+  loadUserInfo(); setupSidebar();
+  renderHealthCards();
+  renderDiseaseMatrix();
+  renderHealthTrend();
+});
+
+function renderHealthCards() {
+  document.getElementById('healthCards').innerHTML = healthData.map(h => {
+    const color = h.score >= 90 ? 'var(--success)' : h.score >= 70 ? 'var(--warning)' : h.score === 0 ? 'var(--text-muted)' : 'var(--danger)';
+    const trendIcon = { up:'↑', down:'↓', stable:'→', unknown:'?' }[h.trend];
+    return `<div class="glass-card health-card">
+      <div class="flex justify-between items-start mb-12">
+        <div>
+          <div style="font-weight:600;font-size:15px">${h.hive}</div>
+          <div class="text-sm text-muted">${h.status}</div>
+        </div>
+        <div class="health-score" style="color:${color}">${h.score > 0 ? h.score : '--'}</div>
+      </div>
+      ${h.score > 0 ? `<div class="progress-bar mb-12"><div class="progress-fill ${h.score>=90?'green':h.score>=70?'honey':'red'}" style="width:${h.score}%"></div></div>` : ''}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+        <div>🦟 Varroa: <span style="color:${h.varroa>15?'var(--danger)':h.varroa>5?'var(--warning)':'var(--success)'}">${h.varroa}%</span></div>
+        <div>🦠 Nosema: <span style="color:${h.nosema>10?'var(--danger)':h.nosema>3?'var(--warning)':'var(--success)'}">${h.nosema}%</span></div>
+        <div>🧫 Foulbrood: <span style="color:${h.foulbrood>0?'var(--danger)':'var(--success)'}">${h.foulbrood > 0 ? 'Detected' : 'None'}</span></div>
+        <div>👑 Queen: <span style="color:${h.queen==='Active'?'var(--success)':h.queen==='Weak'?'var(--warning)':'var(--text-muted)'}">${h.queen}</span></div>
+      </div>
+      <div class="flex justify-between items-center mt-12">
+        <span class="text-xs text-muted">Trend: ${trendIcon}</span>
+        <button class="btn btn-sm btn-secondary" onclick="showToast('Detailed report for ${h.hive} coming soon!','info')">View Report</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderDiseaseMatrix() {
+  const diseases = [
+    { name: 'Varroa Mite',       icon: '🦟', risk: 'Low',    pct: 12, color: 'var(--warning)' },
+    { name: 'Nosema',            icon: '🦠', risk: 'Low',    pct: 5,  color: 'var(--success)' },
+    { name: 'American Foulbrood',icon: '🧫', risk: 'None',   pct: 1,  color: 'var(--success)' },
+    { name: 'European Foulbrood',icon: '🧫', risk: 'None',   pct: 0,  color: 'var(--success)' },
+    { name: 'Chalkbrood',        icon: '🍄', risk: 'None',   pct: 2,  color: 'var(--success)' },
+    { name: 'Small Hive Beetle', icon: '🪲', risk: 'Low',    pct: 8,  color: 'var(--warning)' },
+    { name: 'Wax Moth',          icon: '🦋', risk: 'None',   pct: 3,  color: 'var(--success)' },
+    { name: 'Pesticide Exposure',icon: '☠️', risk: 'None',   pct: 0,  color: 'var(--success)' }
+  ];
+  document.getElementById('diseaseMatrix').innerHTML = diseases.map(d => `
+    <div class="disease-item">
+      <div class="flex justify-between items-center">
+        <span>${d.icon} ${d.name}</span>
+        <span class="badge ${d.risk==='None'?'badge-success':d.risk==='Low'?'badge-warning':'badge-danger'}">${d.risk}</span>
+      </div>
+      <div class="disease-risk-bar" style="background:rgba(255,255,255,0.06)">
+        <div style="height:100%;width:${d.pct}%;background:${d.color};border-radius:2px;transition:width 0.6s"></div>
+      </div>
+      <div class="text-xs text-muted mt-4">Fleet risk: ${d.pct}%</div>
+    </div>`).join('');
+}
+
+function renderHealthTrend() {
+  const days = Array.from({length:30},(_,i)=>{const d=new Date();d.setDate(d.getDate()-29+i);return d.getDate()+'';});
+  drawLineChart('healthTrendChart', days, [
+    { data: generateTimeSeries(30, 88, 5), color: '#22c55e', label: 'Fleet Health Score' }
+  ], { height: 240, min: 60, max: 100, decimals: 0 });
+}
+
+function runAIScan() {
+  showToast('🤖 AI scan initiated... Analyzing all hives...', 'info');
+  setTimeout(() => showToast('✅ AI scan complete. All hives analyzed.', 'success'), 2500);
+}
+</script>
+</body>
+</html>

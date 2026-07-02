@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hive Map – Smart Beehives</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    #mapContainer { height: 500px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--card-border); }
+    .leaflet-container { background: #1a1f2e; }
+    .hive-popup { background: #1e2530; border: 1px solid rgba(245,166,35,0.3); border-radius: 8px; padding: 12px; min-width: 200px; color: #f0f0f0; }
+    .hive-popup h4 { color: var(--honey); margin-bottom: 8px; }
+    .hive-popup p  { font-size: 12px; color: #a0a0b0; margin: 3px 0; }
+    .map-legend { display:flex; gap:16px; flex-wrap:wrap; padding:12px 0; }
+    .legend-item { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-secondary); }
+    .legend-dot  { width:12px; height:12px; border-radius:50%; }
+  </style>
+</head>
+<body>
+<div class="bg-decoration"></div>
+<div class="app-layout" id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><div class="sidebar-logo-icon">🍯</div><div class="sidebar-logo-text"><h2>SmartHives</h2><span>IoT Platform v2.0</span></div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="../dashboard.html"    class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="hive-monitoring.html" class="nav-item"><span class="nav-icon">🐝</span> Hive Monitoring</a>
+      <a href="bee-health.html"      class="nav-item"><span class="nav-icon">🏥</span> Bee Health</a>
+      <a href="honey-analytics.html" class="nav-item"><span class="nav-icon">📊</span> Honey Analytics</a>
+      <a href="notifications.html"   class="nav-item"><span class="nav-icon">🔔</span> Notifications</a>
+      <a href="hive-map.html"        class="nav-item active"><span class="nav-icon">🗺️</span> Hive Map</a>
+      <div class="nav-section-label">Management</div>
+      <a href="reports.html"         class="nav-item"><span class="nav-icon">📋</span> Reports</a>
+      <a href="farmers.html"         class="nav-item"><span class="nav-icon">👨🌾</span> Farmer Management</a>
+      <a href="sensors.html"         class="nav-item"><span class="nav-icon">📡</span> Sensor Status</a>
+      <a href="ai-center.html"       class="nav-item"><span class="nav-icon">🤖</span> AI Center</a>
+      <div class="nav-section-label">System</div>
+      <a href="settings.html"        class="nav-item"><span class="nav-icon">⚙️</span> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar"><span class="user-avatar-text">AD</span></div>
+        <div class="user-info"><div class="user-name user-name-display">Admin</div><div class="user-role user-role-display">Administrator</div></div>
+        <button id="logoutBtn" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-muted)">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content" id="mainContent">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+        <div><div class="topbar-title">🗺️ Hive Map</div><div class="topbar-subtitle">Geographic distribution of all beehives</div></div>
+      </div>
+      <div class="topbar-right">
+        <div class="realtime-indicator"><span class="pulse-dot online"></span><span>Live</span></div>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <!-- Map Legend -->
+      <div class="glass-card p-16 mb-16">
+        <div class="map-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--success)"></div> Active Hive</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--warning)"></div> Warning</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--danger)"></div> Offline</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--honey)"></div> Harvest Ready</div>
+        </div>
+      </div>
+
+      <!-- Map -->
+      <div class="glass-card p-4 mb-20">
+        <div id="mapContainer"></div>
+      </div>
+
+      <!-- Hive Location List -->
+      <div class="glass-card p-24">
+        <div class="section-title mb-16">📍 Hive Locations</div>
+        <table class="sensor-table">
+          <thead><tr><th>Hive</th><th>Location</th><th>Coordinates</th><th>Status</th><th>Farmer</th><th>Action</th></tr></thead>
+          <tbody id="locationTable"></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div id="toastContainer" class="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/dashboard.js"></script>
+<script>
+let map;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  initSupabase();
+  const user = await Auth.getUser();
+  if (!user) { window.location.href = '../index.html'; return; }
+  loadUserInfo(); setupSidebar();
+  const { data } = await DB.getHives();
+  allHives = data || [];
+  initMap();
+  renderLocationTable();
+});
+
+function initMap() {
+  map = L.map('mapContainer').setView([-1.2921, 36.8219], 12);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    className: 'map-tiles'
+  }).addTo(map);
+
+  allHives.forEach(hive => {
+    const gps = hive.gps_locations?.[0];
+    if (!gps?.latitude) return;
+
+    const s = hive.hive_sensors?.[0] || {};
+    const color = hive.status === 'active' ? '#22c55e' : hive.status === 'warning' ? '#f59e0b' : '#ef4444';
+
+    const icon = L.divIcon({
+      html: `<div style="
+        width:36px;height:36px;
+        background:${color};
+        border:3px solid white;
+        border-radius:50% 50% 50% 0;
+        transform:rotate(-45deg);
+        box-shadow:0 4px 12px rgba(0,0,0,0.4);
+        display:flex;align-items:center;justify-content:center;
+      "><span style="transform:rotate(45deg);font-size:14px">🍯</span></div>`,
+      className: '',
+      iconSize: [36, 36],
+      iconAnchor: [18, 36]
+    });
+
+    const marker = L.marker([gps.latitude, gps.longitude], { icon }).addTo(map);
+    marker.bindPopup(`
+      <div class="hive-popup">
+        <h4>🍯 ${hive.name}</h4>
+        <p>📍 ${hive.location_name}</p>
+        <p>🌡️ Temp: ${s.temperature || '--'}°C</p>
+        <p>💧 Humidity: ${s.humidity || '--'}%</p>
+        <p>⚖️ Weight: ${s.weight || '--'} kg</p>
+        <p>🔋 Battery: ${s.battery || '--'}%</p>
+        <p>👤 ${hive.assigned_farmer || 'Unassigned'}</p>
+        <a href="../hive-detail.html?id=${hive.id}" style="color:#f5a623;font-size:12px">View Details →</a>
+      </div>
+    `, { className: 'custom-popup' });
+  });
+}
+
+function renderLocationTable() {
+  const tbody = document.getElementById('locationTable');
+  tbody.innerHTML = allHives.map(hive => {
+    const gps = hive.gps_locations?.[0] || {};
+    return `<tr>
+      <td><strong>${hive.name}</strong></td>
+      <td>📍 ${hive.location_name || 'N/A'}</td>
+      <td class="text-muted">${gps.latitude ? `${gps.latitude.toFixed(4)}, ${gps.longitude.toFixed(4)}` : 'Not set'}</td>
+      <td>${hive.status === 'active' ? '<span class="badge badge-success">Active</span>' : hive.status === 'warning' ? '<span class="badge badge-warning">Warning</span>' : '<span class="badge badge-danger">Offline</span>'}</td>
+      <td>${hive.assigned_farmer || 'Unassigned'}</td>
+      <td><a href="../hive-detail.html?id=${hive.id}" class="btn btn-sm btn-secondary">View</a></td>
+    </tr>`;
+  }).join('');
+}
+</script>
+</body>
+</html>

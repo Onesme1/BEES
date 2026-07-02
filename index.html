@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Beehives – Login</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/auth.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍯</text></svg>">
+</head>
+<body>
+  <div class="auth-bg"></div>
+  <div class="honeycomb-bg"></div>
+  <div class="bg-decoration"></div>
+
+  <div class="auth-page">
+    <div class="auth-container">
+
+      <!-- Logo -->
+      <div class="auth-logo">
+        <div class="auth-logo-icon">🍯</div>
+        <h1>Smart Beehives</h1>
+        <p>Intelligent Apiary Management Platform</p>
+      </div>
+
+      <!-- Auth Card -->
+      <div class="auth-card">
+        <!-- Tabs -->
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-tab="login">Sign In</button>
+          <button class="auth-tab" data-tab="signup">Create Account</button>
+        </div>
+
+        <!-- Error -->
+        <div class="auth-error" id="authError"></div>
+
+        <!-- LOGIN FORM -->
+        <form id="loginForm" autocomplete="on">
+          <div class="input-group">
+            <span class="input-icon">📧</span>
+            <input type="email" id="loginEmail" class="form-input" placeholder="Email address" required autocomplete="email">
+          </div>
+          <div class="input-group">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="loginPassword" class="form-input" placeholder="Password" required autocomplete="current-password">
+            <button type="button" class="input-toggle">👁️</button>
+          </div>
+
+          <div class="flex justify-between items-center mb-16" style="font-size:13px">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--text-secondary)">
+              <input type="checkbox" style="accent-color:var(--honey)"> Remember me
+            </label>
+            <a href="#" id="forgotLink" style="color:var(--honey)">Forgot password?</a>
+          </div>
+
+          <button type="submit" class="auth-submit" id="loginBtn" data-text="Sign In 🐝">
+            Sign In 🐝
+          </button>
+        </form>
+
+        <!-- SIGNUP FORM -->
+        <form id="signupForm" class="hidden" autocomplete="on">
+          <div class="input-group">
+            <span class="input-icon">👤</span>
+            <input type="text" id="signupName" class="form-input" placeholder="Full name" required>
+          </div>
+          <div class="input-group">
+            <span class="input-icon">📧</span>
+            <input type="email" id="signupEmail" class="form-input" placeholder="Email address" required autocomplete="email">
+          </div>
+          <div class="input-group">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="signupPassword" class="form-input" placeholder="Password (min 6 chars)" required autocomplete="new-password">
+            <button type="button" class="input-toggle">👁️</button>
+          </div>
+          <div class="input-group">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="signupConfirm" class="form-input" placeholder="Confirm password" required autocomplete="new-password">
+            <button type="button" class="input-toggle">👁️</button>
+          </div>
+
+          <div class="form-label">Select Role</div>
+          <div class="role-selector">
+            <div class="role-option selected" data-role="admin">
+              <span class="role-icon">👑</span> Admin
+            </div>
+            <div class="role-option" data-role="farmer">
+              <span class="role-icon">🌾</span> Farmer
+            </div>
+            <div class="role-option" data-role="technician">
+              <span class="role-icon">🔧</span> Tech
+            </div>
+          </div>
+          <input type="hidden" id="selectedRole" value="admin">
+
+          <button type="submit" class="auth-submit" id="signupBtn" data-text="Create Account 🐝">
+            Create Account 🐝
+          </button>
+        </form>
+
+        <!-- Stats -->
+        <div class="auth-stats">
+          <div class="auth-stat">
+            <div class="auth-stat-value">6+</div>
+            <div class="auth-stat-label">Smart Hives</div>
+          </div>
+          <div class="auth-stat">
+            <div class="auth-stat-value">24/7</div>
+            <div class="auth-stat-label">Monitoring</div>
+          </div>
+          <div class="auth-stat">
+            <div class="auth-stat-value">AI</div>
+            <div class="auth-stat-label">Powered</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="auth-footer">
+        <p>© 2025 Smart Beehives Platform &nbsp;|&nbsp; IoT Agriculture Technology</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>

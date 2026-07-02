@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hive Detail – Smart Beehives</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍯</text></svg>">
+  <style>
+    .detail-hero { display:grid; grid-template-columns:1fr auto; gap:20px; align-items:start; margin-bottom:24px; }
+    .sensor-gauges { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:16px; }
+    .sensor-gauge-card { padding:20px; text-align:center; }
+    .gauge-big-value { font-size:36px; font-weight:700; color:var(--honey); line-height:1; }
+    .gauge-big-label { font-size:12px; color:var(--text-muted); margin-top:6px; }
+    .gauge-big-unit  { font-size:14px; color:var(--text-secondary); }
+    .log-row { display:grid; grid-template-columns:140px 1fr 1fr 1fr; gap:12px; padding:10px 12px; border-bottom:1px solid rgba(255,255,255,0.04); font-size:13px; }
+    .log-row:last-child { border-bottom:none; }
+    .log-header { font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); }
+    .ai-warning { display:flex; gap:12px; padding:14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); border-radius:var(--radius-sm); margin-bottom:10px; }
+    .ai-ok { display:flex; gap:12px; padding:14px; background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.2); border-radius:var(--radius-sm); }
+    @media(max-width:768px) { .detail-hero{grid-template-columns:1fr} .log-row{grid-template-columns:1fr 1fr} }
+  </style>
+</head>
+<body>
+<div class="bg-decoration"></div>
+
+<div class="app-layout" id="app">
+
+  <!-- SIDEBAR (same as dashboard) -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">🍯</div>
+      <div class="sidebar-logo-text"><h2>SmartHives</h2><span>IoT Platform v2.0</span></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="../dashboard.html"              class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="hive-monitoring.html"           class="nav-item active"><span class="nav-icon">🐝</span> Hive Monitoring</a>
+      <a href="bee-health.html"                class="nav-item"><span class="nav-icon">🏥</span> Bee Health</a>
+      <a href="honey-analytics.html"           class="nav-item"><span class="nav-icon">📊</span> Honey Analytics</a>
+      <a href="notifications.html"             class="nav-item"><span class="nav-icon">🔔</span> Notifications</a>
+      <a href="hive-map.html"                  class="nav-item"><span class="nav-icon">🗺️</span> Hive Map</a>
+      <div class="nav-section-label">Management</div>
+      <a href="reports.html"                   class="nav-item"><span class="nav-icon">📋</span> Reports</a>
+      <a href="farmers.html"                   class="nav-item"><span class="nav-icon">👨🌾</span> Farmer Management</a>
+      <a href="sensors.html"                   class="nav-item"><span class="nav-icon">📡</span> Sensor Status</a>
+      <a href="ai-center.html"                 class="nav-item"><span class="nav-icon">🤖</span> AI Center</a>
+      <div class="nav-section-label">System</div>
+      <a href="settings.html"                  class="nav-item"><span class="nav-icon">⚙️</span> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar"><span class="user-avatar-text">AD</span></div>
+        <div class="user-info">
+          <div class="user-name user-name-display">Admin</div>
+          <div class="user-role user-role-display">Administrator</div>
+        </div>
+        <button id="logoutBtn" title="Logout" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-muted)">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content" id="mainContent">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+        <div>
+          <div class="topbar-title" id="hivePageTitle">Hive Detail</div>
+          <div class="topbar-subtitle" id="hivePageSubtitle">Loading...</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="realtime-indicator"><span class="pulse-dot online"></span><span id="realtimeStatus">Live</span></div>
+        <button class="btn btn-secondary btn-sm" onclick="history.back()">← Back</button>
+      </div>
+    </header>
+
+    <main class="page-content" id="hiveDetailContent">
+      <div class="text-center p-24"><span class="spinner" style="width:40px;height:40px;border-width:3px"></span><p class="text-secondary mt-16">Loading hive data...</p></div>
+    </main>
+  </div>
+</div>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div id="toastContainer" class="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/charts.js"></script>
+<script src="../js/dashboard.js"></script>
+<script>
+let currentHive = null;
+let sprayActive = false;
+let detailInterval = null;
+
+async function loadHiveDetail() {
+  const params = new URLSearchParams(window.location.search);
+  const hiveId = params.get('id');
+  if (!hiveId) { window.location.href = '../dashboard.html'; return; }
+
+  const { data: hive, error } = await DB.getHive(hiveId);
+  if (error || !hive) { showToast('Hive not found', 'error'); return; }
+
+  currentHive = hive;
+  renderHiveDetail(hive);
+  subscribeToHive(hiveId);
+  startDetailSimulation();
+}
+
+function renderHiveDetail(hive) {
+  const s = hive.hive_sensors?.[0] || {};
+  const gps = hive.gps_locations?.[0] || {};
+  const online = s.is_online !== false;
+
+  document.getElementById('hivePageTitle').textContent = hive.name;
+  document.getElementById('hivePageSubtitle').textContent = `📍 ${hive.location_name || 'Unknown'} • ${online ? '🟢 Online' : '🔴 Offline'}`;
+
+  const statusBadge = {
+    active:  '<span class="badge badge-success">🟢 Active</span>',
+    warning: '<span class="badge badge-warning">⚠️ Warning</span>',
+    offline: '<span class="badge badge-danger">🔴 Offline</span>'
+  }[hive.status] || '<span class="badge badge-muted">Unknown</span>';
+
+  const tempColor  = s.temperature > 37 ? 'var(--danger)' : s.temperature > 35 ? 'var(--warning)' : 'var(--success)';
+  const humidColor = s.humidity < 40 || s.humidity > 80 ? 'var(--warning)' : 'var(--info)';
+  const batColor   = s.battery < 20 ? 'var(--danger)' : s.battery < 50 ? 'var(--warning)' : 'var(--success)';
+
+  document.getElementById('hiveDetailContent').innerHTML = `
+
+    <!-- Hero -->
+    <div class="detail-hero">
+      <div class="glass-card p-24">
+        <div class="flex items-center gap-16 mb-16">
+          <div style="font-size:56px">🍯</div>
+          <div>
+            <h2 style="font-size:24px">${hive.name}</h2>
+            <p class="text-secondary">📍 ${hive.location_name || 'N/A'} &nbsp;|&nbsp; 👤 ${hive.assigned_farmer || 'Unassigned'}</p>
+            <p class="text-muted text-sm mt-8">📅 Installed: ${formatDate(hive.installation_date)} &nbsp;|&nbsp; 🆔 ${hive.id}</p>
+          </div>
+        </div>
+        <div class="flex gap-8" style="flex-wrap:wrap">
+          ${statusBadge}
+          ${online ? '<span class="badge badge-info">📡 Connected</span>' : '<span class="badge badge-danger">📡 Disconnected</span>'}
+          ${s.battery < 20 ? '<span class="badge badge-danger">🔋 Low Battery</span>' : ''}
+          ${s.temperature > 37 ? '<span class="badge badge-danger">🌡️ High Temp</span>' : ''}
+          ${gps.latitude ? `<span class="badge badge-muted">🌍 ${gps.latitude?.toFixed(4)}, ${gps.longitude?.toFixed(4)}</span>` : ''}
+        </div>
+      </div>
+      <!-- Spray Control -->
+      <div class="glass-card p-24 text-center" style="min-width:180px">
+        <div class="section-title mb-8">💧 Spray Control</div>
+        <div class="spray-control">
+          <button class="spray-btn" id="sprayBtn" onclick="toggleSpray()" title="Toggle spray system">
+            💧
+          </button>
+          <div>
+            <div id="sprayStatus" class="text-sm text-secondary">System Ready</div>
+            <div id="sprayLastTime" class="text-xs text-muted mt-8">Last spray: Never</div>
+          </div>
+          <button class="btn btn-sm btn-secondary" onclick="scheduleSpray()">⏰ Schedule</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Sensor Gauges -->
+    <div class="sensor-gauges mb-24" id="sensorGauges">
+      <div class="glass-card sensor-gauge-card">
+        <div style="font-size:28px mb-8">🌡️</div>
+        <div class="gauge-big-value" id="liveTemp" style="color:${tempColor}">${online ? s.temperature : '--'}</div>
+        <div class="gauge-big-unit">°C</div>
+        <div class="gauge-big-label">Temperature</div>
+        <div class="progress-bar mt-8"><div class="progress-fill ${s.temperature > 37 ? 'red' : 'honey'}" style="width:${Math.min((s.temperature/45)*100,100)}%"></div></div>
+      </div>
+      <div class="glass-card sensor-gauge-card">
+        <div style="font-size:28px">💧</div>
+        <div class="gauge-big-value" id="liveHumid" style="color:${humidColor}">${online ? s.humidity : '--'}</div>
+        <div class="gauge-big-unit">%</div>
+        <div class="gauge-big-label">Humidity</div>
+        <div class="progress-bar mt-8"><div class="progress-fill blue" style="width:${s.humidity || 0}%"></div></div>
+      </div>
+      <div class="glass-card sensor-gauge-card">
+        <div style="font-size:28px">⚖️</div>
+        <div class="gauge-big-value" id="liveWeight">${s.weight || '--'}</div>
+        <div class="gauge-big-unit">kg</div>
+        <div class="gauge-big-label">Honey Weight</div>
+        <div class="progress-bar mt-8"><div class="progress-fill honey" style="width:${Math.min((s.weight/50)*100,100)}%"></div></div>
+      </div>
+      <div class="glass-card sensor-gauge-card">
+        <div style="font-size:28px">🔋</div>
+        <div class="gauge-big-value" id="liveBattery" style="color:${batColor}">${s.battery || '--'}</div>
+        <div class="gauge-big-unit">%</div>
+        <div class="gauge-big-label">Battery</div>
+        <div class="progress-bar mt-8"><div class="progress-fill ${s.battery < 20 ? 'red' : s.battery < 50 ? 'honey' : 'green'}" id="batteryBar" style="width:${s.battery || 0}%"></div></div>
+      </div>
+      <div class="glass-card sensor-gauge-card">
+        <div style="font-size:28px">☀️</div>
+        <div class="gauge-big-value" style="color:var(--honey)">${online ? Math.round(65 + Math.random()*30) : '--'}</div>
+        <div class="gauge-big-unit">%</div>
+        <div class="gauge-big-label">Solar Charge</div>
+        <div class="progress-bar mt-8"><div class="progress-fill honey" style="width:78%"></div></div>
+      </div>
+      <div class="glass-card sensor-gauge-card">
+        <div style="font-size:28px">📶</div>
+        <div class="gauge-big-value" style="color:${online ? 'var(--success)' : 'var(--danger)'}">${online ? 'ON' : 'OFF'}</div>
+        <div class="gauge-big-unit"></div>
+        <div class="gauge-big-label">Connection</div>
+        <div class="mt-8"><span class="pulse-dot ${online ? 'online' : 'offline'}"></span></div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="content-grid" style="margin-bottom:20px">
+      <div class="glass-card p-24">
+        <div class="section-header">
+          <div class="section-title">🌡️ Temperature History (24h)</div>
+          <span class="badge badge-info">Live</span>
+        </div>
+        <div class="chart-canvas-wrap"><canvas id="tempChart"></canvas></div>
+      </div>
+      <div class="glass-card p-24">
+        <div class="section-header">
+          <div class="section-title">⚖️ Weight Progression</div>
+          <span class="badge badge-success">+2.3kg this week</span>
+        </div>
+        <div class="chart-canvas-wrap"><canvas id="weightChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="content-grid" style="margin-bottom:20px">
+      <div class="glass-card p-24">
+        <div class="section-header">
+          <div class="section-title">💧 Humidity History (24h)</div>
+        </div>
+        <div class="chart-canvas-wrap"><canvas id="humidChart"></canvas></div>
+      </div>
+      <div class="glass-card p-24">
+        <div class="section-header">
+          <div class="section-title">🤖 AI Health Analysis</div>
+          <span class="badge badge-success">Last scan: 2h ago</span>
+        </div>
+        <div id="aiAnalysis">
+          <div class="ai-ok mb-16">
+            <span style="font-size:24px">✅</span>
+            <div>
+              <div style="font-weight:600;color:var(--success)">Colony Healthy</div>
+              <div class="text-sm text-secondary mt-4">No disease patterns detected. Queen activity normal. Brood pattern excellent.</div>
+              <div class="text-xs text-muted mt-4">Confidence: 97% • Model: BeeVision AI v3.2</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="padding:12px;background:rgba(255,255,255,0.04);border-radius:8px">
+              <div class="text-xs text-muted">Varroa Risk</div>
+              <div style="font-weight:600;color:var(--success)">Low (3%)</div>
+            </div>
+            <div style="padding:12px;background:rgba(255,255,255,0.04);border-radius:8px">
+              <div class="text-xs text-muted">Nosema Risk</div>
+              <div style="font-weight:600;color:var(--success)">Low (1%)</div>
+            </div>
+            <div style="padding:12px;background:rgba(255,255,255,0.04);border-radius:8px">
+              <div class="text-xs text-muted">Queen Status</div>
+              <div style="font-weight:600;color:var(--success)">Active</div>
+            </div>
+            <div style="padding:12px;background:rgba(255,255,255,0.04);border-radius:8px">
+              <div class="text-xs text-muted">Harvest Ready</div>
+              <div style="font-weight:600;color:var(--honey)">${s.weight > 30 ? 'Yes' : 'Not yet'}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sensor Logs -->
+    <div class="glass-card p-24">
+      <div class="section-header">
+        <div class="section-title">📋 Sensor Logs</div>
+        <button class="btn btn-sm btn-secondary" onclick="exportLogs()">⬇️ Export CSV</button>
+      </div>
+      <div class="log-row log-header">
+        <span>Timestamp</span><span>Temp (°C)</span><span>Humidity (%)</span><span>Weight (kg)</span>
+      </div>
+      <div id="sensorLogList">
+        ${DEMO_DATA.sensorLogs.slice(0,10).map(log => `
+          <div class="log-row">
+            <span class="text-muted">${new Date(log.logged_at).toLocaleString()}</span>
+            <span>${log.temperature}°C</span>
+            <span>${log.humidity}%</span>
+            <span>${log.weight} kg</span>
+          </div>`).join('')}
+      </div>
+    </div>
+  `;
+
+  // Render charts
+  setTimeout(renderHiveCharts, 100);
+}
+
+function renderHiveCharts() {
+  const hours = getLast24Hours();
+  const s = currentHive?.hive_sensors?.[0] || {};
+
+  drawLineChart('tempChart', hours,
+    [{ data: generateTimeSeries(24, s.temperature || 34, 2), color: '#ef4444', label: 'Temp °C' }],
+    { height: 200, min: 28, max: 42 }
+  );
+
+  drawLineChart('weightChart', getLast7Days(),
+    [{ data: generateTimeSeries(7, (s.weight || 25) - 3, 1, 0.5), color: '#f5a623', label: 'Weight kg' }],
+    { height: 200 }
+  );
+
+  drawLineChart('humidChart', hours,
+    [{ data: generateTimeSeries(24, s.humidity || 60, 8), color: '#3b82f6', label: 'Humidity %' }],
+    { height: 200, min: 20, max: 100 }
+  );
+}
+
+function toggleSpray() {
+  sprayActive = !sprayActive;
+  const btn = document.getElementById('sprayBtn');
+  const status = document.getElementById('sprayStatus');
+  const lastTime = document.getElementById('sprayLastTime');
+
+  if (sprayActive) {
+    btn.classList.add('active');
+    btn.innerHTML = '🛑';
+    status.textContent = '💧 Spraying Active...';
+    status.style.color = 'var(--danger)';
+    showToast('💧 Spray system activated!', 'warning');
+    DB.logSprayActivity({ hive_id: currentHive?.id, activated_at: new Date().toISOString(), type: 'manual' });
+  } else {
+    btn.classList.remove('active');
+    btn.innerHTML = '💧';
+    status.textContent = 'System Ready';
+    status.style.color = '';
+    lastTime.textContent = 'Last spray: ' + new Date().toLocaleTimeString();
+    showToast('Spray system deactivated.', 'success');
+  }
+}
+
+function scheduleSpray() {
+  showToast('⏰ Spray scheduling coming soon!', 'info');
+}
+
+function exportLogs() {
+  const rows = [['Timestamp','Temperature','Humidity','Weight']];
+  DEMO_DATA.sensorLogs.forEach(l => rows.push([l.logged_at, l.temperature, l.humidity, l.weight]));
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv,' + encodeURIComponent(csv);
+  a.download = `${currentHive?.name || 'hive'}_logs.csv`;
+  a.click();
+}
+
+function subscribeToHive(hiveId) {
+  Realtime.subscribeToHive(hiveId, payload => {
+    const s = payload.new;
+    if (s) {
+      document.getElementById('liveTemp')?.textContent !== undefined && (document.getElementById('liveTemp').textContent = s.temperature);
+      document.getElementById('liveHumid')?.textContent !== undefined && (document.getElementById('liveHumid').textContent = s.humidity);
+      document.getElementById('liveWeight')?.textContent !== undefined && (document.getElementById('liveWeight').textContent = s.weight);
+      document.getElementById('liveBattery')?.textContent !== undefined && (document.getElementById('liveBattery').textContent = s.battery);
+    }
+  });
+}
+
+function startDetailSimulation() {
+  if (supabase) return;
+  detailInterval = setInterval(() => {
+    const s = currentHive?.hive_sensors?.[0];
+    if (!s || !s.is_online) return;
+    s.temperature = +(s.temperature + (Math.random() - 0.5) * 0.3).toFixed(1);
+    s.humidity    = Math.max(30, Math.min(90, +(+s.humidity + (Math.random() - 0.5)).toFixed(0)));
+    s.weight      = +(+s.weight + (Math.random() - 0.48) * 0.02).toFixed(2);
+
+    const tempEl = document.getElementById('liveTemp');
+    const humidEl = document.getElementById('liveHumid');
+    const weightEl = document.getElementById('liveWeight');
+    if (tempEl)   tempEl.textContent   = s.temperature;
+    if (humidEl)  humidEl.textContent  = s.humidity;
+    if (weightEl) weightEl.textContent = s.weight;
+    document.getElementById('realtimeStatus').textContent = 'Live • ' + new Date().toLocaleTimeString();
+  }, 3000);
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', async () => {
+  initSupabase();
+  const user = await Auth.getUser();
+  if (!user) { window.location.href = '../index.html'; return; }
+  loadUserInfo();
+  setupSidebar();
+  await loadHiveDetail();
+});
+</script>
+</body>
+</html>

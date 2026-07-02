@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Center – Smart Beehives</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍯</text></svg>">
+  <style>
+    .ai-pulse { animation: ai-glow 2s ease-in-out infinite; }
+    @keyframes ai-glow { 0%,100%{box-shadow:0 0 20px rgba(59,130,246,0.3)} 50%{box-shadow:0 0 40px rgba(59,130,246,0.6)} }
+    .scan-line { height:2px; background:linear-gradient(90deg,transparent,var(--info),transparent); animation:scan 2s linear infinite; }
+    @keyframes scan { from{transform:translateY(0)} to{transform:translateY(200px)} }
+  </style>
+</head>
+<body>
+<div class="bg-decoration"></div>
+<div class="app-layout" id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><div class="sidebar-logo-icon">🍯</div><div class="sidebar-logo-text"><h2>SmartHives</h2><span>IoT Platform v2.0</span></div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="../dashboard.html"    class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="hive-monitoring.html" class="nav-item"><span class="nav-icon">🐝</span> Hive Monitoring</a>
+      <a href="bee-health.html"      class="nav-item"><span class="nav-icon">🏥</span> Bee Health</a>
+      <a href="honey-analytics.html" class="nav-item"><span class="nav-icon">📊</span> Honey Analytics</a>
+      <a href="notifications.html"   class="nav-item"><span class="nav-icon">🔔</span> Notifications</a>
+      <a href="hive-map.html"        class="nav-item"><span class="nav-icon">🗺️</span> Hive Map</a>
+      <div class="nav-section-label">Management</div>
+      <a href="reports.html"         class="nav-item"><span class="nav-icon">📋</span> Reports</a>
+      <a href="farmers.html"         class="nav-item"><span class="nav-icon">👨🌾</span> Farmer Management</a>
+      <a href="sensors.html"         class="nav-item"><span class="nav-icon">📡</span> Sensor Status</a>
+      <a href="ai-center.html"       class="nav-item active"><span class="nav-icon">🤖</span> AI Center</a>
+      <div class="nav-section-label">System</div>
+      <a href="settings.html"        class="nav-item"><span class="nav-icon">⚙️</span> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar"><span class="user-avatar-text">AD</span></div>
+        <div class="user-info"><div class="user-name user-name-display">Admin</div><div class="user-role user-role-display">Administrator</div></div>
+        <button id="logoutBtn" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-muted)">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content" id="mainContent">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+        <div><div class="topbar-title">🤖 AI Monitoring Center</div><div class="topbar-subtitle">Machine learning powered hive intelligence</div></div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-primary btn-sm" id="scanAllBtn" onclick="runFullScan()">🤖 Scan All Hives</button>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <!-- AI Stats -->
+      <div class="stats-grid mb-24">
+        <div class="glass-card stat-card blue"><span class="stat-icon">🤖</span><div class="stat-value">97.3%</div><div class="stat-label">AI Accuracy</div></div>
+        <div class="glass-card stat-card green"><span class="stat-icon">✅</span><div class="stat-value">1,247</div><div class="stat-label">Scans Completed</div></div>
+        <div class="glass-card stat-card honey"><span class="stat-icon">🎯</span><div class="stat-value">3</div><div class="stat-label">Issues Detected</div></div>
+        <div class="glass-card stat-card blue"><span class="stat-icon">⚡</span><div class="stat-value">0.8s</div><div class="stat-label">Avg Scan Time</div></div>
+      </div>
+
+      <div class="content-grid mb-20">
+        <!-- AI Scanner -->
+        <div class="glass-card p-24">
+          <div class="section-title mb-16">🔍 AI Disease Scanner</div>
+          <div style="position:relative;background:rgba(0,0,0,0.3);border-radius:12px;padding:24px;text-align:center;overflow:hidden;min-height:200px;border:1px solid rgba(59,130,246,0.2)" class="ai-pulse">
+            <div class="scan-line" id="scanLine" style="display:none"></div>
+            <div style="font-size:64px;margin-bottom:16px" id="aiIcon">🤖</div>
+            <div style="font-size:18px;font-weight:600;color:var(--info)" id="aiStatus">AI System Ready</div>
+            <div class="text-sm text-muted mt-8" id="aiSubStatus">Click "Scan All Hives" to begin analysis</div>
+            <div style="margin-top:20px">
+              <div class="progress-bar" style="height:8px"><div class="progress-fill blue" id="scanProgress" style="width:0%;transition:width 0.1s"></div></div>
+              <div class="text-xs text-muted mt-8" id="scanPercent">0%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Predictions -->
+        <div class="glass-card p-24">
+          <div class="section-title mb-16">🔮 AI Predictions</div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="padding:14px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:8px">
+              <div style="font-weight:600;color:var(--success)">🍯 Harvest Prediction</div>
+              <div class="text-sm text-secondary mt-4">Epsilon Hive ready for harvest in <strong class="text-honey">3-5 days</strong></div>
+              <div class="text-xs text-muted mt-4">Confidence: 91%</div>
+            </div>
+            <div style="padding:14px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:8px">
+              <div style="font-weight:600;color:var(--warning)">⚠️ Varroa Risk Alert</div>
+              <div class="text-sm text-secondary mt-4">Gamma Hive showing elevated mite indicators</div>
+              <div class="text-xs text-muted mt-4">Confidence: 78% • Recommend treatment</div>
+            </div>
+            <div style="padding:14px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:8px">
+              <div style="font-weight:600;color:var(--info)">📈 Production Forecast</div>
+              <div class="text-sm text-secondary mt-4">Fleet expected to produce <strong class="text-honey">42 kg</strong> next 30 days</div>
+              <div class="text-xs text-muted mt-4">Based on current growth trends</div>
+            </div>
+            <div style="padding:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:8px">
+              <div style="font-weight:600">🌡️ Climate Optimization</div>
+              <div class="text-sm text-secondary mt-4">Optimal foraging conditions expected this week</div>
+              <div class="text-xs text-muted mt-4">Weather integration active</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Scan History -->
+      <div class="glass-card p-24">
+        <div class="section-title mb-16">📋 AI Scan History</div>
+        <table class="sensor-table">
+          <thead><tr><th>Timestamp</th><th>Hive</th><th>Result</th><th>Confidence</th><th>Action Taken</th></tr></thead>
+          <tbody>
+            <tr><td class="text-muted">Today 14:32</td><td>Alpha Hive</td><td><span class="badge badge-success">Healthy</span></td><td>97%</td><td>None required</td></tr>
+            <tr><td class="text-muted">Today 14:31</td><td>Gamma Hive</td><td><span class="badge badge-warning">Varroa Risk</span></td><td>78%</td><td>Alert sent to farmer</td></tr>
+            <tr><td class="text-muted">Today 14:30</td><td>Beta Hive</td><td><span class="badge badge-success">Healthy</span></td><td>94%</td><td>None required</td></tr>
+            <tr><td class="text-muted">Yesterday 09:15</td><td>Epsilon Hive</td><td><span class="badge badge-success">Harvest Ready</span></td><td>91%</td><td>Harvest notification sent</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div id="toastContainer" class="toast-container"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/dashboard.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  initSupabase();
+  const user = await Auth.getUser();
+  if (!user) { window.location.href = '../index.html'; return; }
+  loadUserInfo(); setupSidebar();
+});
+
+function runFullScan() {
+  const btn = document.getElementById('scanAllBtn');
+  const progress = document.getElementById('scanProgress');
+  const percent = document.getElementById('scanPercent');
+  const status = document.getElementById('aiStatus');
+  const subStatus = document.getElementById('aiSubStatus');
+  const scanLine = document.getElementById('scanLine');
+  const icon = document.getElementById('aiIcon');
+
+  btn.disabled = true;
+  scanLine.style.display = 'block';
+  icon.textContent = '🔍';
+  status.textContent = 'Scanning...';
+  subStatus.textContent = 'Analyzing colony patterns with BeeVision AI v3.2';
+
+  let pct = 0;
+  const interval = setInterval(() => {
+    pct += Math.random() * 8;
+    if (pct >= 100) {
+      pct = 100;
+      clearInterval(interval);
+      scanLine.style.display = 'none';
+      icon.textContent = '✅';
+      status.textContent = 'Scan Complete';
+      subStatus.textContent = '6 hives analyzed • 1 warning detected • All results logged';
+      btn.disabled = false;
+      showToast('✅ AI scan complete! 1 warning detected in Gamma Hive.', 'warning');
+    }
+    progress.style.width = pct + '%';
+    percent.textContent = Math.round(pct) + '%';
+  }, 100);
+}
+</script>
+</body>
+</html>

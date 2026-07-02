@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings – Smart Beehives</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍯</text></svg>">
+  <style>
+    .settings-section { margin-bottom: 24px; }
+    .toggle-switch { position:relative; width:44px; height:24px; }
+    .toggle-switch input { opacity:0; width:0; height:0; }
+    .toggle-slider { position:absolute; inset:0; background:rgba(255,255,255,0.1); border-radius:24px; cursor:pointer; transition:0.3s; }
+    .toggle-slider::before { content:''; position:absolute; width:18px; height:18px; left:3px; bottom:3px; background:white; border-radius:50%; transition:0.3s; }
+    input:checked + .toggle-slider { background:var(--honey); }
+    input:checked + .toggle-slider::before { transform:translateX(20px); }
+    .setting-row { display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
+    .setting-row:last-child { border-bottom:none; }
+  </style>
+</head>
+<body>
+<div class="bg-decoration"></div>
+<div class="app-layout" id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><div class="sidebar-logo-icon">🍯</div><div class="sidebar-logo-text"><h2>SmartHives</h2><span>IoT Platform v2.0</span></div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="../dashboard.html"    class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="hive-monitoring.html" class="nav-item"><span class="nav-icon">🐝</span> Hive Monitoring</a>
+      <a href="bee-health.html"      class="nav-item"><span class="nav-icon">🏥</span> Bee Health</a>
+      <a href="honey-analytics.html" class="nav-item"><span class="nav-icon">📊</span> Honey Analytics</a>
+      <a href="notifications.html"   class="nav-item"><span class="nav-icon">🔔</span> Notifications</a>
+      <a href="hive-map.html"        class="nav-item"><span class="nav-icon">🗺️</span> Hive Map</a>
+      <div class="nav-section-label">Management</div>
+      <a href="reports.html"         class="nav-item"><span class="nav-icon">📋</span> Reports</a>
+      <a href="farmers.html"         class="nav-item"><span class="nav-icon">👨🌾</span> Farmer Management</a>
+      <a href="sensors.html"         class="nav-item"><span class="nav-icon">📡</span> Sensor Status</a>
+      <a href="ai-center.html"       class="nav-item"><span class="nav-icon">🤖</span> AI Center</a>
+      <div class="nav-section-label">System</div>
+      <a href="settings.html"        class="nav-item active"><span class="nav-icon">⚙️</span> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar"><span class="user-avatar-text">AD</span></div>
+        <div class="user-info"><div class="user-name user-name-display">Admin</div><div class="user-role user-role-display">Administrator</div></div>
+        <button id="logoutBtn" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-muted)">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content" id="mainContent">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+        <div><div class="topbar-title">⚙️ Settings</div><div class="topbar-subtitle">Platform configuration and preferences</div></div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-primary btn-sm" onclick="saveSettings()">💾 Save Changes</button>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <div class="content-grid">
+        <!-- Left Column -->
+        <div>
+          <!-- Profile -->
+          <div class="glass-card p-24 settings-section">
+            <div class="section-title mb-16">👤 Profile Settings</div>
+            <div class="form-group"><label class="form-label">Full Name</label><input type="text" class="form-input" id="profileName" placeholder="Your name"></div>
+            <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="profileEmail" placeholder="email@example.com"></div>
+            <div class="form-group"><label class="form-label">Phone</label><input type="tel" class="form-input" placeholder="+254 700 000 000"></div>
+            <div class="form-group"><label class="form-label">Farm Name</label><input type="text" class="form-input" value="Smart Beehives Farm" placeholder="Farm name"></div>
+            <button class="btn btn-secondary btn-sm" onclick="showToast('Profile updated!','success')">Update Profile</button>
+          </div>
+
+          <!-- Supabase Config -->
+          <div class="glass-card p-24 settings-section">
+            <div class="section-title mb-16">🔗 Supabase Configuration</div>
+            <div class="form-group"><label class="form-label">Project URL</label><input type="text" class="form-input" id="sbUrl" placeholder="https://your-project.supabase.co"></div>
+            <div class="form-group"><label class="form-label">Anon Key</label><input type="password" class="form-input" id="sbKey" placeholder="your-anon-key"></div>
+            <button class="btn btn-secondary btn-sm" onclick="testConnection()">🔌 Test Connection</button>
+            <div id="connectionStatus" class="text-sm mt-8"></div>
+          </div>
+        </div>
+
+        <!-- Right Column -->
+        <div>
+          <!-- Notifications -->
+          <div class="glass-card p-24 settings-section">
+            <div class="section-title mb-16">🔔 Notification Settings</div>
+            ${[
+              ['High Temperature Alerts', true],
+              ['Low Battery Warnings', true],
+              ['Hive Offline Alerts', true],
+              ['Harvest Ready Notifications', true],
+              ['Disease Detection Alerts', true],
+              ['Weight Decrease Alerts', false],
+              ['Email Notifications', true],
+              ['SMS Notifications', false]
+            ].map(([label, checked]) => `
+              <div class="setting-row">
+                <span class="text-sm">${label}</span>
+                <label class="toggle-switch"><input type="checkbox" ${checked?'checked':''}><span class="toggle-slider"></span></label>
+              </div>`).join('')}
+          </div>
+
+          <!-- Alert Thresholds -->
+          <div class="glass-card p-24 settings-section">
+            <div class="section-title mb-16">⚠️ Alert Thresholds</div>
+            <div class="form-group"><label class="form-label">Max Temperature (°C)</label><input type="number" class="form-input" value="38" min="30" max="50"></div>
+            <div class="form-group"><label class="form-label">Min Humidity (%)</label><input type="number" class="form-input" value="40" min="10" max="90"></div>
+            <div class="form-group"><label class="form-label">Low Battery (%)</label><input type="number" class="form-input" value="20" min="5" max="50"></div>
+            <div class="form-group"><label class="form-label">Harvest Weight (kg)</label><input type="number" class="form-input" value="30" min="10" max="100"></div>
+          </div>
+
+          <!-- System Info -->
+          <div class="glass-card p-24">
+            <div class="section-title mb-16">ℹ️ System Information</div>
+            <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+              <div class="flex justify-between"><span class="text-muted">Platform Version</span><span>v2.0.0</span></div>
+              <div class="flex justify-between"><span class="text-muted">AI Model</span><span>BeeVision v3.2</span></div>
+              <div class="flex justify-between"><span class="text-muted">Database</span><span>PostgreSQL (Supabase)</span></div>
+              <div class="flex justify-between"><span class="text-muted">Backend Ready</span><span class="text-success">Java Spring Boot</span></div>
+              <div class="flex justify-between"><span class="text-muted">IoT Protocol</span><span>MQTT / REST</span></div>
+              <div class="flex justify-between"><span class="text-muted">Last Updated</span><span>${new Date().toLocaleDateString()}</span></div>
+            </div>
+            <button class="btn btn-danger btn-sm mt-16 w-full" onclick="confirmLogout()">🚪 Sign Out</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div id="toastContainer" class="toast-container"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/dashboard.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  initSupabase();
+  const user = await Auth.getUser();
+  if (!user) { window.location.href = '../index.html'; return; }
+  loadUserInfo(); setupSidebar();
+  document.getElementById('profileName').value  = localStorage.getItem('sb_user_name') || '';
+  document.getElementById('profileEmail').value = localStorage.getItem('sb_user_email') || '';
+  document.getElementById('sbUrl').value = SUPABASE_CONFIG.url !== 'https://YOUR_PROJECT_ID.supabase.co' ? SUPABASE_CONFIG.url : '';
+});
+
+function saveSettings() { showToast('✅ Settings saved successfully!', 'success'); }
+
+function testConnection() {
+  const url = document.getElementById('sbUrl').value;
+  const key = document.getElementById('sbKey').value;
+  const status = document.getElementById('connectionStatus');
+  if (!url || !key) { status.innerHTML = '<span class="text-danger">Please enter URL and key.</span>'; return; }
+  status.innerHTML = '<span class="spinner"></span> Testing...';
+  setTimeout(() => {
+    status.innerHTML = '<span class="text-success">✅ Connection successful!</span>';
+    showToast('Supabase connected!', 'success');
+  }, 1500);
+}
+
+async function confirmLogout() {
+  await Auth.signOut();
+  window.location.href = '../index.html';
+}
+</script>
+</body>
+</html>

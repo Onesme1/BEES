@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard – Smart Beehives</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍯</text></svg>">
+</head>
+<body>
+<div class="bg-decoration"></div>
+
+<div class="app-layout" id="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">🍯</div>
+      <div class="sidebar-logo-text">
+        <h2>SmartHives</h2>
+        <span>IoT Platform v2.0</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="dashboard.html"              class="nav-item active"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="pages/hive-monitoring.html"  class="nav-item"><span class="nav-icon">🐝</span> Hive Monitoring</a>
+      <a href="pages/bee-health.html"       class="nav-item"><span class="nav-icon">🏥</span> Bee Health</a>
+      <a href="pages/honey-analytics.html"  class="nav-item"><span class="nav-icon">📊</span> Honey Analytics</a>
+      <a href="pages/notifications.html"    class="nav-item"><span class="nav-icon">🔔</span> Notifications <span class="nav-badge hidden" id="navNotifBadge">0</span></a>
+      <a href="pages/hive-map.html"         class="nav-item"><span class="nav-icon">🗺️</span> Hive Map</a>
+      <div class="nav-section-label">Management</div>
+      <a href="pages/reports.html"          class="nav-item"><span class="nav-icon">📋</span> Reports</a>
+      <a href="pages/farmers.html"          class="nav-item"><span class="nav-icon">👨‍🌾</span> Farmer Management</a>
+      <a href="pages/sensors.html"          class="nav-item"><span class="nav-icon">📡</span> Sensor Status</a>
+      <a href="pages/ai-center.html"        class="nav-item"><span class="nav-icon">🤖</span> AI Center</a>
+      <div class="nav-section-label">System</div>
+      <a href="pages/settings.html"         class="nav-item"><span class="nav-icon">⚙️</span> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar"><span class="user-avatar-text">AD</span></div>
+        <div class="user-info">
+          <div class="user-name user-name-display">Admin</div>
+          <div class="user-role user-role-display">Administrator</div>
+        </div>
+        <button id="logoutBtn" title="Logout" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-muted)">🚪</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-content" id="mainContent">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+        <div>
+          <div class="topbar-title">Dashboard</div>
+          <div class="topbar-subtitle" id="currentDate"></div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="realtime-indicator">
+          <span class="pulse-dot online"></span>
+          <span id="realtimeStatus">Live</span>
+        </div>
+        <button class="topbar-btn" onclick="window.location.href='pages/notifications.html'" title="Notifications">
+          🔔 <span class="notif-count hidden">0</span>
+        </button>
+        <button class="topbar-btn" onclick="window.location.href='pages/settings.html'" title="Settings">⚙️</button>
+      </div>
+    </header>
+
+    <!-- PAGE CONTENT -->
+    <main class="page-content">
+
+      <!-- STATS ROW -->
+      <div class="stats-grid">
+        <div class="glass-card stat-card honey">
+          <span class="stat-icon">🍯</span>
+          <div class="stat-value" id="statTotal">0</div>
+          <div class="stat-label">Total Hives</div>
+          <div class="stat-change up">↑ All registered</div>
+        </div>
+        <div class="glass-card stat-card green">
+          <span class="stat-icon">✅</span>
+          <div class="stat-value" id="statActive">0</div>
+          <div class="stat-label">Active Hives</div>
+          <div class="stat-change up" id="activePercent">↑ Online now</div>
+        </div>
+        <div class="glass-card stat-card red">
+          <span class="stat-icon">📴</span>
+          <div class="stat-value" id="statOffline">0</div>
+          <div class="stat-label">Offline Hives</div>
+          <div class="stat-change down">↓ Need attention</div>
+        </div>
+        <div class="glass-card stat-card honey">
+          <span class="stat-icon">⚖️</span>
+          <div class="stat-value" id="statWeight">0 kg</div>
+          <div class="stat-label">Total Honey Weight</div>
+          <div class="stat-change up">↑ Combined harvest</div>
+        </div>
+        <div class="glass-card stat-card blue">
+          <span class="stat-icon">⚠️</span>
+          <div class="stat-value" id="statWarning">0</div>
+          <div class="stat-label">Warnings</div>
+          <div class="stat-change">Requires review</div>
+        </div>
+      </div>
+
+      <!-- HIVE CONTROLS -->
+      <div class="section-header">
+        <div>
+          <div class="section-title">🐝 Beehive Fleet</div>
+          <div class="section-subtitle">Monitor and manage all your smart hives</div>
+        </div>
+        <div class="flex gap-8 items-center" style="flex-wrap:wrap">
+          <!-- Filter buttons -->
+          <button class="btn btn-sm btn-secondary filter-btn active" data-filter="all" onclick="filterHives('all')">All</button>
+          <button class="btn btn-sm btn-secondary filter-btn" data-filter="active"  onclick="filterHives('active')">Active</button>
+          <button class="btn btn-sm btn-secondary filter-btn" data-filter="warning" onclick="filterHives('warning')">Warning</button>
+          <button class="btn btn-sm btn-secondary filter-btn" data-filter="offline" onclick="filterHives('offline')">Offline</button>
+          <!-- Search -->
+          <input type="text" class="form-input" style="width:180px;padding:8px 12px;font-size:13px" placeholder="🔍 Search hives..." oninput="searchHives(this.value)">
+          <button class="btn btn-primary btn-sm" onclick="openAddHiveModal()">+ Add Hive</button>
+        </div>
+      </div>
+
+      <!-- HIVE CARDS -->
+      <div class="hives-grid" id="hivesGrid">
+        <div class="glass-card p-24 text-center" style="grid-column:1/-1">
+          <div class="spinner" style="margin:0 auto 12px"></div>
+          <p class="text-secondary">Loading hives...</p>
+        </div>
+      </div>
+
+      <!-- BOTTOM SECTION -->
+      <div class="content-grid wide" style="margin-top:24px">
+
+        <!-- Alerts -->
+        <div class="glass-card p-24">
+          <div class="section-header">
+            <div>
+              <div class="section-title">🚨 Recent Alerts</div>
+              <div class="section-subtitle">Latest system notifications</div>
+            </div>
+            <a href="pages/notifications.html" class="btn btn-sm btn-secondary">View All</a>
+          </div>
+          <div class="alert-list" id="alertList">
+            <div class="text-center text-muted p-16"><span class="spinner"></span></div>
+          </div>
+        </div>
+
+        <!-- Quick Stats Panel -->
+        <div style="display:flex;flex-direction:column;gap:16px">
+
+          <!-- Honey Production Chart -->
+          <div class="glass-card p-24">
+            <div class="section-header">
+              <div class="section-title">📈 Honey Trend</div>
+              <span class="badge badge-success">+12% this month</span>
+            </div>
+            <div class="chart-canvas-wrap" style="height:160px">
+              <canvas id="honeyTrendChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Fleet Health -->
+          <div class="glass-card p-24">
+            <div class="section-title mb-16">🏥 Fleet Health</div>
+            <div style="display:flex;justify-content:center;gap:24px;align-items:center">
+              <canvas id="healthDonut" width="120" height="120"></canvas>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div class="flex items-center gap-8"><span style="width:10px;height:10px;background:var(--success);border-radius:50%;display:inline-block"></span><span class="text-sm">Healthy</span><span class="text-sm text-honey font-bold" id="healthyCount">0</span></div>
+                <div class="flex items-center gap-8"><span style="width:10px;height:10px;background:var(--warning);border-radius:50%;display:inline-block"></span><span class="text-sm">Warning</span><span class="text-sm text-honey font-bold" id="warningCount">0</span></div>
+                <div class="flex items-center gap-8"><span style="width:10px;height:10px;background:var(--danger);border-radius:50%;display:inline-block"></span><span class="text-sm">Critical</span><span class="text-sm text-honey font-bold" id="criticalCount">0</span></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- SIDEBAR OVERLAY -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ADD/EDIT HIVE MODAL -->
+<div class="modal-overlay" id="hiveModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="hiveModalTitle">Add New Hive</div>
+      <button class="modal-close">✕</button>
+    </div>
+    <form id="hiveForm" onsubmit="saveHive(event)">
+      <input type="hidden" id="hiveIdField">
+      <div class="form-group">
+        <label class="form-label">Hive Name *</label>
+        <input type="text" id="hiveName" class="form-input" placeholder="e.g. Alpha Hive" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Location Name *</label>
+        <input type="text" id="hiveLocation" class="form-input" placeholder="e.g. North Field" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Assigned Farmer</label>
+        <input type="text" id="hiveFarmer" class="form-input" placeholder="Farmer name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Installation Date</label>
+        <input type="date" id="hiveInstallDate" class="form-input">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label class="form-label">Latitude</label>
+          <input type="number" id="hiveLat" class="form-input" placeholder="-1.2921" step="any">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Longitude</label>
+          <input type="number" id="hiveLng" class="form-input" placeholder="36.8219" step="any">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select id="hiveStatus" class="form-select">
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="maintenance">Maintenance</option>
+        </select>
+      </div>
+      <div class="flex gap-12" style="margin-top:8px">
+        <button type="button" class="btn btn-secondary w-full" data-close-modal>Cancel</button>
+        <button type="submit" class="btn btn-primary w-full" id="saveHiveBtn">Save Hive</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <div class="modal-title">Delete Hive</div>
+      <button class="modal-close">✕</button>
+    </div>
+    <p class="text-secondary" style="margin-bottom:20px">
+      Are you sure you want to delete <strong class="text-honey" id="deleteHiveName"></strong>? This action cannot be undone.
+    </p>
+    <div class="flex gap-12">
+      <button class="btn btn-secondary w-full" data-close-modal>Cancel</button>
+      <button class="btn btn-danger w-full" id="confirmDeleteBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toastContainer" class="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/dashboard.js"></script>
+<script>
+  // Set date
+  document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  // Render mini charts after dashboard loads
+  async function renderDashboardCharts() {
+    const months = getLast6Months();
+    const honeyData = [12, 15.5, 19.2, 22.8, 26.1, 28.4];
+    drawLineChart('honeyTrendChart', months, [{ data: honeyData, color: '#f5a623', label: 'kg' }], { height: 160, decimals: 0 });
+
+    // Health donut
+    const active  = allHives.filter(h => h.status === 'active').length;
+    const warning = allHives.filter(h => h.status === 'warning').length;
+    const offline = allHives.filter(h => h.status === 'offline').length;
+    document.getElementById('healthyCount').textContent  = active;
+    document.getElementById('warningCount').textContent  = warning;
+    document.getElementById('criticalCount').textContent = offline;
+    drawDonutChart('healthDonut', [
+      { value: active,  color: '#22c55e' },
+      { value: warning, color: '#f59e0b' },
+      { value: offline, color: '#ef4444' }
+    ], { size: 120, centerText: allHives.length, centerSubText: 'Hives', bgColor: '#0d1117' });
+  }
+
+  // Hook into dashboard init
+  const _origInit = initDashboard;
+  window.initDashboard = async function() {
+    await _origInit();
+    setTimeout(renderDashboardCharts, 100);
+  };
+</script>
+</body>
+</html>
